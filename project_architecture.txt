@@ -1,0 +1,59 @@
+graph TB
+    subgraph Frontend[Frontend - Streamlit]
+        UI[User Interface]
+        UP[Upload PDF]
+        QA[Question Input]
+        DR[Document List/Results]
+    end
+
+    subgraph Backend[Backend - FastAPI]
+        API[FastAPI Endpoints]
+        
+        subgraph Services[Services]
+            DS[Document Service]
+            ES[Embedding Service]
+            LS[LLM Service]
+        end
+        
+        subgraph Storage[Vector Storage]
+            CD[ChromaDB]
+        end
+        
+        subgraph External[External Services]
+            HF[HuggingFace Embeddings]
+            GL[LLM]
+        end
+    end
+
+    %% Frontend to Backend connections
+    UP --> |POST upload|API
+    QA --> |POST ask|API
+    DR --> |GET documents|API
+    DR --> |DELETE documents|API
+
+    %% Backend internal connections
+    API --> DS
+    API --> LS
+    DS --> ES
+    DS --> CD
+    LS --> CD
+    ES --> HF
+    LS --> GL
+
+    %% Data flow for document processing
+    DS --> |Store Chunks|CD
+    CD --> |Retrieve Context|LS
+    
+    %% Response flow
+    API --> |Response|DR
+    
+    %% Styling
+    classDef frontend fill:#a8d1ff,stroke:#333,stroke-width:2px
+    classDef backend fill:#ffb3b3,stroke:#333,stroke-width:2px
+    classDef storage fill:#b3ffb3,stroke:#333,stroke-width:2px
+    classDef external fill:#ffecb3,stroke:#333,stroke-width:2px
+    
+    class Frontend,UI,UP,QA,DR frontend
+    class Backend,API,DS,ES,LS backend
+    class Storage,CD storage
+    class External,HF,GL external
