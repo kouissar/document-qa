@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    
     GROQ_API_KEY: str = ""
     CHROMA_PERSISTENCE_DIR: str = "./chroma_db"
     MODEL_NAME: str = "mixtral-8x7b-32768"
@@ -8,4 +9,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+
+#forcing a change
 settings = Settings() 
