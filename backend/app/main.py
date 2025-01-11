@@ -5,6 +5,7 @@ from typing import List, Optional
 import os
 import tempfile
 from app.services import document_service, llm_service
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
@@ -22,7 +23,7 @@ class QuestionRequest(BaseModel):
     
 class QuestionResponse(BaseModel):
     answer: str
-    sources: List[str]
+    sources: List[dict]
 
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
@@ -85,4 +86,20 @@ async def delete_document(document_id: str):
         document_service.vector_store.persist()  # Save changes to disk
         return {"message": "Document deleted successfully"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+@app.get("/download/{filename}")
+async def download_file(filename: str):
+    file_path = os.path.join(settings.PDF_STORAGE_DIR, filename)
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")  # Add debug logging
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        return FileResponse(
+            file_path,
+            media_type="application/pdf",
+            filename=filename
+        )
+    except Exception as e:
+        print(f"Error serving file: {str(e)}")  # Add debug logging
         raise HTTPException(status_code=500, detail=str(e)) 

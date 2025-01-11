@@ -3,6 +3,7 @@ import os
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
+from app.config import settings
 
 class DocumentService:
     def __init__(self, embedding_service, vector_store):
@@ -12,6 +13,8 @@ class DocumentService:
             chunk_size=1000,
             chunk_overlap=200
         )
+        # Ensure PDF storage directory exists
+        os.makedirs(settings.PDF_STORAGE_DIR, exist_ok=True)
     
     async def process_pdf(self, file_path: str, original_filename: str) -> List[Document]:
         try:
@@ -25,34 +28,40 @@ class DocumentService:
                         print(f"Document {original_filename} already exists")
                         return []
 
-            # Extract text from PDF
+            # Extract text from PDF with page numbers
             pdf_reader = PdfReader(file_path)
-            text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text()
+            text_by_page = []
+            for page_num, page in enumerate(pdf_reader.pages, 1):
+                text_by_page.append((page_num, page.extract_text()))
             
-            print(f"Extracted {len(text)} characters from PDF")
+            print(f"Extracted text from {len(text_by_page)} pages")
             
-            # Split text into chunks
-            texts = self.text_splitter.split_text(text)
-            print(f"Split into {len(texts)} chunks")
+            documents = []
+            for page_num, text in text_by_page:
+                # Split text into chunks for each page
+                chunks = self.text_splitter.split_text(text)
+                # Create documents with page metadata
+                page_docs = [
+                    Document(
+                        page_content=chunk,
+                        metadata={
+                            "source": original_filename,
+                            "page": page_num,
+                            "chunk": i + 1,
+                            "total_chunks": len(chunks)
+                        }
+                    ) for i, chunk in enumerate(chunks)
+                ]
+                documents.extend(page_docs)
             
-            # Create documents with original filename
-            documents = [
-                Document(
-                    page_content=t,
-                    metadata={"source": original_filename}
-                ) for t in texts
-            ]
+            # Save original PDF to storage
+            pdf_path = os.path.join(settings.PDF_STORAGE_DIR, original_filename)
+            with open(file_path, 'rb') as src, open(pdf_path, 'wb') as dst:
+                dst.write(src.read())
             
             # Add to vector store
             self.vector_store.add_documents(documents)
             self.vector_store.persist()
-            
-            # Verify documents were added
-            if collection:
-                result = collection.get()
-                print(f"Vector store now contains {len(result['metadatas'])} documents")
             
             return documents
         except Exception as e:

@@ -38,10 +38,31 @@ Answer:""",
     async def ask_question(self, question: str):
         try:
             result = self.qa_chain({"question": question})
+            sources = []
+            for doc in result["source_documents"]:
+                metadata = doc.metadata
+                source_info = {
+                    "filename": metadata.get("source", "Unknown"),
+                    "page": metadata.get("page", 1),
+                    "content": doc.page_content  # Include the chunk content
+                }
+                # Only add chunk info if available
+                if "chunk" in metadata and "total_chunks" in metadata:
+                    source_info["chunk"] = f"{metadata['chunk']}/{metadata['total_chunks']}"
+                else:
+                    source_info["chunk"] = "1/1"
+                
+                # Only add unique sources
+                if source_info not in sources:
+                    sources.append(source_info)
+            
             return {
                 "answer": result["answer"],
-                "sources": list(set(doc.metadata["source"] for doc in result["source_documents"]))
+                "sources": sources
             }
         except Exception as e:
-            print(f"Error in ask_question: {str(e)}")  # Add debugging
+            print(f"Error in ask_question: {str(e)}")
+            print(f"Result structure: {result.keys() if 'result' in locals() else 'No result'}")
+            if 'result' in locals() and "source_documents" in result:
+                print(f"Source docs metadata: {[doc.metadata for doc in result['source_documents']]}")
             raise e 
