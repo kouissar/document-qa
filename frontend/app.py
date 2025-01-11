@@ -59,7 +59,23 @@ if st.button("Ask"):
                 result = response.json()
                 st.write("Answer:", result["answer"])
                 if result["sources"]:
-                    st.write("Sources:", ", ".join(result["sources"]))
+                    st.write("Sources:")
+                    for i, source in enumerate(result["sources"]):
+                        # Create an expander for each source
+                        with st.expander(
+                            f"📄 {source['filename']} (Page {source['page']}, Chunk {source['chunk']})"
+                        ):
+                            # Show the chunk content
+                            if "content" in source:
+                                st.text_area(
+                                    "Relevant Text:",
+                                    source["content"],
+                                    height=100,
+                                    disabled=True
+                                )
+                            # Add download button inside expander
+                            download_url = f"{BACKEND_URL}/download/{source['filename']}"
+                            st.markdown(f"[Download PDF]({download_url})")
             else:
                 st.error("Failed to get answer")
         except Exception as e:

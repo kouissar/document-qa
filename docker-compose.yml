@@ -7,6 +7,7 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./chroma_db:/app/chroma_db
+      - ./backend/pdfs:/app/chroma_db/pdfs
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
 
