@@ -29,7 +29,7 @@ Answer:""",
         self.qa_chain = RetrievalQAWithSourcesChain.from_llm(
             llm=self.llm,
             retriever=self.vector_store.as_retriever(
-                search_kwargs={"k": 3}  # Retrieve top 3 most relevant chunks
+                search_kwargs={"k": 2}  # Retrieve top 3 most relevant chunks
             ),
             question_prompt=question_prompt,
             return_source_documents=True

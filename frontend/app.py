@@ -76,9 +76,56 @@ if st.button("Ask"):
                             # Add download button inside expander
                             download_url = f"{BACKEND_URL}/download/{source['filename']}"
                             st.markdown(f"[Download PDF]({download_url})")
+                # Feedback section
+                feedback = st.text_area("Provide your feedback on the answer:")
+                if st.button("Submit Feedback"):
+                    feedback_data = {
+                        "question": question,
+                        "response": result["answer"],
+                        "feedback": feedback
+                    }
+                    print("Feedback data being sent:", feedback_data)  # Debug log
+                    feedback_response = requests.post(
+                        f"{BACKEND_URL}/feedback",
+                        json=feedback_data
+                    )
+                    if feedback_response.status_code == 200:
+                        st.success("Feedback submitted successfully!")
+                    else:
+                        st.error("Failed to submit feedback")
+                        st.write(feedback_response.text)  # Log the response for debugging
             else:
                 st.error("Failed to get answer")
         except Exception as e:
             st.error(f"Error: {str(e)}")
     else:
-        st.warning("Please enter a question") 
+        st.warning("Please enter a question")
+        
+# sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
+# selected = st.sidebar.feedback("thumbs")
+# if selected is not None:
+#     st.sidebar.markdown(f"You selected: {sentiment_mapping[selected]}")
+
+# Feedback review section
+st.header("Review Feedback")
+if st.button("Load Feedback"):
+    try:
+        response = requests.get(f"{BACKEND_URL}/feedback")
+        if response.status_code == 200:
+            feedback_list = response.json().get("feedback", [])
+            if feedback_list:
+                for feedback in feedback_list:
+                    question, response_text, user_feedback = feedback
+                    st.subheader("Question:")
+                    st.write(question)
+                    st.subheader("Response:")
+                    st.write(response_text)
+                    st.subheader("User Feedback:")
+                    st.write(user_feedback)
+                    st.markdown("---")  # Separator between feedback entries
+            else:
+                st.info("No feedback found.")
+        else:
+            st.error("Failed to load feedback.")
+    except Exception as e:
+        st.error(f"Error: {str(e)}") 

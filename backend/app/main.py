@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import os
 import tempfile
-from app.services import document_service, llm_service
+from app.services import document_service, llm_service, feedback_service
 from fastapi.responses import FileResponse
 
 app = FastAPI()
@@ -102,4 +102,24 @@ async def download_file(filename: str):
         )
     except Exception as e:
         print(f"Error serving file: {str(e)}")  # Add debug logging
+        raise HTTPException(status_code=500, detail=str(e)) 
+
+# Initialize the feedback database
+feedback_service.init_db()
+
+@app.post("/feedback")
+async def submit_feedback(question: str, response: str, feedback: str):
+    try:
+        feedback_service.store_feedback(question, response, feedback)
+        return {"message": "Feedback submitted successfully"}
+    except Exception as e:
+        print(f"Error submitting feedback: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/feedback")
+async def get_feedback():
+    try:
+        feedback_list = feedback_service.get_all_feedback()
+        return {"feedback": feedback_list}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
